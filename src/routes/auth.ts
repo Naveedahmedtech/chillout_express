@@ -1,5 +1,5 @@
 import { router } from "@/config/express.config";
-import { googleCallback, registerUser, registerWithGoogle } from "@/controller/auth";
+import { facebookCallback, googleCallback, registerUser, registerWithFacebook, registerWithGoogle } from "@/controller/auth";
 import { registerSchema } from "@/lib/validation/auth";
 import csrfProtection from "@/middlewares/csrfTokenHandler";
 import { validateRequest } from "@/middlewares/validation";
@@ -10,7 +10,11 @@ router.post(
   validateRequest(registerSchema),
   registerUser
 );
+// * GOOGLE
 router.get("/google", registerWithGoogle)
-// router.post("/google/callback", googleCallback)
+router.all("/google/callback", googleCallback);
+// * FACEBOOK
+router.get("/facebook", registerWithFacebook);
+router.get("/facebook/callback", facebookCallback);
 
 export default router;

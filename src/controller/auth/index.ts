@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "@/config/express.config";
 import {
+  getFacebookUrl,
   getGoogleUrl,
+  handleFacebookCallback,
   handleGoogleCallback,
   registerUserService,
 } from "@/services/auth";
@@ -9,8 +11,6 @@ import {
   sendErrorResponse,
   sendSuccessResponse,
 } from "@/utils/responseHandler";
-
-// TODO: INCLUDE REGISTRATION|LOGIN type in db
 
 export const registerUser = async (
   req: Request,
@@ -65,14 +65,56 @@ export const googleCallback = async (
     );
   }
   try {
-    const payload = handleGoogleCallback(code);
-    return sendSuccessResponse(
-      res,
-      "User registered successfully with GOOGLE",
-      payload,
-      201
-    );
+    await handleGoogleCallback(res, code);
+    res.redirect(process.env.FRONTED_URL!);
   } catch (error: Error | any) {
+    // P2002 code for unique fields
+    if (error.code === "P2002") {
+      const fieldName = error.meta.target[0];
+      const err = new CustomError(`${fieldName} has already exists!`, 409);
+      next(err);
+    }
+    next(error);
+  }
+};
+
+export const registerWithFacebook = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authUrl = getFacebookUrl();
+    res.redirect(authUrl);
+  } catch (error: Error | any) {
+    next(error);
+  }
+};
+
+export const facebookCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const code = req.query.code as string;
+  if (!code) {
+    return sendErrorResponse(
+      res,
+      "Code is missing",
+      400,
+      "Code is missing in the query params"
+    );
+  }
+  try {
+    await handleFacebookCallback(code);
+    res.redirect(process.env.FRONTED_URL!);
+  } catch (error: Error | any) {
+    // P2002 code for unique fields
+    if (error.code === "P2002") {
+      const fieldName = error.meta.target[0];
+      const err = new CustomError(`${fieldName} has already exists!`, 409);
+      next(err);
+    }
     next(error);
   }
 };
